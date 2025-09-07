@@ -2424,14 +2424,10 @@ void HetuwMod::drawHostileTiles() {
                     } else if (state == -1) {
                     
                         setDrawColor(0.0f, 1.0f, 0.7f, 0.2f + strobeIntensity * 0.5f);
-                    } else if (state == 0) {
+                    } else (state == 0) {
         
                         setDrawColor(0.5f, 0.5f, 0.5f, 0.2f + strobeIntensity * 0.5f);
-                    } else {
-
-                        float bw = strobeIntensity;  
-                        setDrawColor(bw, bw, bw, 0.5f + strobeIntensity * 0.5f);
-                    }
+						{}
 
                     drawTileRect(x, y);
                 }
