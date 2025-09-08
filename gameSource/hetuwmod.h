@@ -650,7 +650,7 @@ public:
 	static unsigned char charKey_ShowHostilePlayers;
 	//Bools
 	static bool bDrawHostilePlayers;
-	static bool isHoldingWeapon(int holdingID);  
+
 	static bool justKilled(int holdingID);
 	//
 	static std::string decodeIfCiphered(const char* msg);
