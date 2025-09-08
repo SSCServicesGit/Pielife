@@ -447,4 +447,9 @@ private:
 
 };
 
+
+// Fake identity helpers
+const char* getUserEmailEffective();
+char* getPureAccountKeyEffective();
+
 #endif

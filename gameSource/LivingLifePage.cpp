@@ -6816,7 +6816,8 @@ void LivingLifePage::drawTypingBarUI() {
     double uiScale = HetuwMod::UIScale(1.0);
 
     HetuwMod::drawUIRectFollowCamera({-440, 120}, 900, 40, 0.0f, 0.0f, 0.0f, 0.6f);
-    HetuwMod::drawUIRectFollowCamera({-700, 150}, 270, 20, 0.0f, 0.0f, 0.0f, 0.6f);
+    HetuwMod::drawUIRectFollowCamera({-670, 150}, 330, 20, 0.0f, 0.0f, 0.0f, 0.6f); //positionx, positiony, width, height
+    //for every action there must be an equal or opposite reaction + 50 -50
 
     char* typedText = mSayField.getText();
     if (!typedText) return;
@@ -6827,7 +6828,7 @@ void LivingLifePage::drawTypingBarUI() {
     if (vogMode) baseSayLimit = 200;
     else if (hasSlash) baseSayLimit = 23;
 
-    int sayLimit = (HetuwMod::cipherNumber != 0) ? baseSayLimit - 2 : baseSayLimit;
+    int sayLimit = (HetuwMod::cipherNumberSay != 0) ? baseSayLimit - 2 : baseSayLimit;
     mSayField.setMaxLength(sayLimit);
 
     doublePair textPos;
@@ -6841,13 +6842,13 @@ void LivingLifePage::drawTypingBarUI() {
 hetuwDrawScaledHandwritingFont(typedText, textPos, uiScale * 0.8, alignLeft);
     hetuwDrawScaledHandwritingFont(typedText, textPos, uiScale * 0.8, alignLeft);
 
-    if (HetuwMod::cipherNumber != 0 && !hasSlash) {
+    if (HetuwMod::cipherNumberSay != 0 && !hasSlash) {
         std::string ciphered;
         for (char* p = typedText; *p; ++p) {
             char c = *p;
             if (isalpha(c)) {
                 char base = isupper(c) ? 'A' : 'a';
-                ciphered += char(((c - base + HetuwMod::cipherNumber) % 26) + base);
+                ciphered += char(((c - base + HetuwMod::cipherNumberSay) % 26) + base);
             } else {
                 ciphered += c;
             }
@@ -6867,7 +6868,7 @@ hetuwDrawScaledHandwritingFont(typedText, textPos, uiScale * 0.8, alignLeft);
 
     char counterMsg[64];
     snprintf(counterMsg, sizeof(counterMsg),
-             "[LEFT: %d   CC: %d]", left, HetuwMod::cipherNumber);
+             "[ LEFT: %d CC: S:%d R:%d ]", left, HetuwMod::cipherNumberSay, HetuwMod::cipherNumberRead);
 
     doublePair counterTextPos;
     counterTextPos.x = lastScreenViewCenter.x - 795 * uiScale;
@@ -20641,12 +20642,14 @@ void LivingLifePage::step() {
                                     delete [] existing->currentSpeech;
                                     existing->currentSpeech = NULL;
                                     }
-                                
-                                std::string rawSpeech = &( firstSpace[1] );
-                                std::string cleanSpeech = HetuwMod::decodeIfCiphered(rawSpeech.c_str());
-                                existing->currentSpeech = stringDuplicate(cleanSpeech.c_str());
-                                HetuwMod::decodeDigits( existing->currentSpeech );  // YumLife mod
-                                
+                                std::string rawSpeech = &(firstSpace[1]);
+                                char buffer[512];
+                                strncpy(buffer, rawSpeech.c_str(), sizeof(buffer));
+                                buffer[sizeof(buffer)-1] = '\0';
+
+                                HetuwMod::decodeDigits(buffer);        
+                                std::string finalSpeech = HetuwMod::decodeIfCiphered(buffer);  
+                                existing->currentSpeech = stringDuplicate(finalSpeech.c_str());
 
                                 double curTime = game_getCurrentTime();
                                 
@@ -27433,10 +27436,37 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
                                 if( sscanf( typedText, "/CIPHER %d", &n ) == 1 ) {
                                     if( n < 0 ) n = 0;
-                                    HetuwMod::cipherNumber = n;
+                                    if( n > 25 ) n = 25;   // 🔹 cap at 25
+                                    HetuwMod::cipherNumberSay = n;
+                                    HetuwMod::cipherNumberRead = n;
                                 }
                                 else {
-                                    HetuwMod::cipherNumber = 0;
+                                    HetuwMod::cipherNumberSay = 0;
+                                    HetuwMod::cipherNumberRead = 0;
+                                }
+                            }
+                            else if( strstr( typedText, "/CCS" ) == typedText ) {
+                                int n = 0;
+
+                                if( sscanf( typedText, "/CCS %d", &n ) == 1 ) {
+                                    if( n < 0 ) n = 0;
+                                    if( n > 25 ) n = 25;   // 🔹 cap at 25
+                                    HetuwMod::cipherNumberSay = n;
+                                }
+                                else {
+                                    HetuwMod::cipherNumberSay = 0;
+                                }
+                            }
+                            else if( strstr( typedText, "/CCR" ) == typedText ) {
+                                int n = 0;
+
+                                if( sscanf( typedText, "/CCR %d", &n ) == 1 ) {
+                                    if( n < 0 ) n = 0;
+                                    if( n > 25 ) n = 25;   // 🔹 cap at 25
+                                    HetuwMod::cipherNumberRead = n;
+                                }
+                                else {
+                                    HetuwMod::cipherNumberRead = 0;
                                 }
                             }
                             else {
@@ -27515,7 +27545,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         // send text to server
 
 						if (!vogMode) { // hetuw mod 
-							HetuwMod::Say(typedText, HetuwMod::cipherNumber);
+							HetuwMod::Say(typedText, HetuwMod::cipherNumberSay);
 						} else {
 						// jasons code
 

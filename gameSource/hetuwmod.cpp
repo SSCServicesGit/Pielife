@@ -28,8 +28,8 @@
 using namespace std;
 
 //Pielife Addition
-int HetuwMod::cipherNumber = 0; 
-int HetuwMod::cipherChannel = 0;
+int HetuwMod::cipherNumberSay = 0; 
+int HetuwMod::cipherNumberRead = 0;
 
 //
 
@@ -126,7 +126,7 @@ unsigned char HetuwMod::charKey_MapZoomOut = 'o';
 
 unsigned char HetuwMod::charKey_ConfirmExit = '%';
 unsigned char HetuwMod::charKey_Minitech = 'v';
-
+unsigned char HetuwMod::charKey_OpenAllDoors = ';';
 
 bool HetuwMod::upKeyDown;
 bool HetuwMod::downKeyDown;
@@ -865,7 +865,7 @@ void HetuwMod::initSettings() {
 	yumConfig::registerSetting("key_showgrid", charKey_ShowGrid);
 
 	yumConfig::registerSetting("key_confirmexit", charKey_ConfirmExit, {preComment: "\n"});
-
+	yumConfig::registerSetting("key_show_open_all_doors", charKey_OpenAllDoors);
 	yumConfig::registerSetting("key_phex", charKey_Phex, {preComment: "\n"});
 	yumConfig::registerSetting("key_minitech", charKey_Minitech);
 	// Pielife Addition
@@ -1709,7 +1709,7 @@ void HetuwMod::SayStep() {
 	if (curTime-timeLastSay < sayDelay) return;
 	timeLastSay = curTime;
 
-	Say(sayBuffer.front(), cipherNumber);
+	Say(sayBuffer.front(), cipherNumberSay);
 	
 	char *p = sayBuffer.front();
 	sayBuffer.erase(sayBuffer.begin(), sayBuffer.begin()+1);
@@ -1729,7 +1729,7 @@ void HetuwMod::Say(const char *text, int cipherNum) {
                 ciphered += char(((c - base + cipherNum) % 26 + 26) % 26 + base);
             } else {
                 ciphered += c;
-            }
+            }	
         }
     }
 
@@ -2377,25 +2377,22 @@ void HetuwMod::drawTileRect( int x, int y ) {
 // In-between: 2156 – Mosquito Swarm, 1640 – Semi-tame Wolf# just fed
 
 
+
 int HetuwMod::animalState(int animalID) {
-
-    int positiveIDs[] = {1747, 1642, 1630, 1339, 1341, 628, 632, 635, 631}; 
+    int positiveIDs[] = {1747, 1642, 1630, 1339, 1341, 628, 632, 635, 631};
     int negativeIDs[] = {418, 420, 1323, 4762, 764, 1328};
-    int inbetweenIDs[] = {2156, 1640}; 
+    int inbetweenIDs[] = {2156, 1640};
 
-    for (size_t i = 0; i < sizeof(negativeIDs) / sizeof(negativeIDs[0]); i++) {
+    for (size_t i = 0; i < sizeof(negativeIDs)/sizeof(negativeIDs[0]); i++)
         if (animalID == negativeIDs[i]) return -1;
-    }
 
-    for (size_t i = 0; i < sizeof(positiveIDs) / sizeof(positiveIDs[0]); i++) {
+    for (size_t i = 0; i < sizeof(positiveIDs)/sizeof(positiveIDs[0]); i++)
         if (animalID == positiveIDs[i]) return 1;
-    }
 
-    for (size_t i = 0; i < sizeof(inbetweenIDs) / sizeof(inbetweenIDs[0]); i++) {
+    for (size_t i = 0; i < sizeof(inbetweenIDs)/sizeof(inbetweenIDs[0]); i++)
         if (animalID == inbetweenIDs[i]) return 0;
-    }
 
-    return -2;
+    return -2; // boars have this issue
 }
 
 void HetuwMod::drawHostileTiles() {
@@ -2407,27 +2404,33 @@ void HetuwMod::drawHostileTiles() {
     int startY = ourLiveObject->yd - radius;
     int endY = ourLiveObject->yd + radius;
 
-    float step = stepCount % 60 / 60.0f;
-    float strobeIntensity = (step > 0.5f) ? 1 - step : step;
-    strobeIntensity *= 2; 
+
+    float step = stepCount % 40 / 40.0f;
+    if (step > 0.5f) step = 1 - step;
+    float strobeAlpha = 0.2f + step;
 
     for (int x = startX; x < endX; x++) {
         for (int y = startY; y < endY; y++) {
             int objId = livingLifePage->hetuwGetObjId(x, y);
             if (objId >= 0 && objId < maxObjects) {
                 if (isGroundDangerousWithHeld(heldObjectID, objId)) {
-                    int state = animalState(objId); 
+                    int state = animalState(objId);
 
-                    if (state == 1) {
-            
-                        setDrawColor(1.0f, 0.0f, 0.0f, 0.2f + strobeIntensity * 0.5f);
-                    } else if (state == -1) {
-                    
-                        setDrawColor(0.0f, 1.0f, 0.7f, 0.2f + strobeIntensity * 0.5f);
-                    } else (state == 0) {
-        
-                        setDrawColor(0.5f, 0.5f, 0.5f, 0.2f + strobeIntensity * 0.5f);
-						{}
+               
+                    switch (state) {
+                        case 1: 
+                            setDrawColor(1.0f, 0.0f, 0.0f, strobeAlpha);
+                            break;
+                        case -1:
+                            setDrawColor(0.0f, 0.6f, 0.6f, strobeAlpha);
+                            break;
+                        case 0: 
+                            setDrawColor(1.0f, 0.0f, 1.0f, strobeAlpha);
+                            break;
+                        default: 
+                            setDrawColor(0.0f, 0.6f, 0.6f, strobeAlpha);
+                            break;
+                    }
 
                     drawTileRect(x, y);
                 }
@@ -2436,26 +2439,33 @@ void HetuwMod::drawHostileTiles() {
     }
 }
 
+
+
 // Pielife Addition
 
 std::string HetuwMod::decodeIfCiphered(const char* msg) {
     std::string text(msg);
 
-    
     if (text.rfind("!-", 0) == 0) {
         text = text.substr(2); 
 
-      
         std::string decoded;
         for (char c : text) {
             if (isalpha(c)) {
                 char base = isupper(c) ? 'A' : 'a';
-                decoded += char(((c - base - HetuwMod::cipherNumber + 26) % 26) + base);
+                decoded += char(((c - base - HetuwMod::cipherNumberRead + 26) % 26) + base);
             } else {
                 decoded += c;
             }
         }
-        return decoded;
+
+        // 🔹 Run through decodeDigits before returning
+        char *digitsDecoded = stringDuplicate(decoded.c_str());
+        HetuwMod::decodeDigits(digitsDecoded);
+        std::string fullyDecoded(digitsDecoded);
+        delete [] digitsDecoded;
+
+        return fullyDecoded;
     }
 
     return text; 
@@ -3704,6 +3714,9 @@ bool HetuwMod::livingLifeKeyDown(unsigned char inASCII) {
 		else if (!cameraIsFixed) livingLifePage->hetuwToggleFixCamera();
 		return true;
 	}
+	if (!commandKey && isCharKey(inASCII, charKey_OpenAllDoors)) {
+		OpenAllDoors();
+	}
 	if (!bDrawMap && !commandKey && isCharKey(inASCII, charKey_ShowHostileTiles)) {
 		bDrawHostileTiles = !bDrawHostileTiles;
 		return true;
@@ -4233,6 +4246,11 @@ bool HetuwMod::findNextMove(int &x, int &y, int dir) {
 
 	return false;
 }
+
+void HetuwMod::OpenAllDoors() {
+//for later
+}
+
 
 void HetuwMod::move() {
 	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return;
@@ -5226,7 +5244,7 @@ void HetuwMod::drawCombatIndicator() {
     int ourEmot = (ourLiveObject->currentEmot ?
                    ourLiveObject->currentEmot->mouthEmot : -1);
 
-    bool holdingWeapon = isObjectDangerous(ourLiveObject->holdingID);
+
     bool holdingMurderWeapon = justKilled(ourLiveObject->holdingID);
     bool targeted = false;
     bool weAreAttacking = false;
@@ -5243,7 +5261,7 @@ void HetuwMod::drawCombatIndicator() {
             targeted = true;
         }
 
-        if (ourEmot == 3066 || ourLiveObject->killWithID != -1) {
+        if (ourEmot == 3066) {
             weAreAttacking = true;
         }
 		else{
@@ -5258,14 +5276,7 @@ void HetuwMod::drawCombatIndicator() {
         }
     }
 
-    if (ourLiveObject->sick){
-        status = "SICK";
-         r = 0; g = 1; b = 0; 
-	}
-	else if(ourLiveObject->dying){
-        status = "DYING";
-         r = 1; g = 0; b = 0; 
-    } else if (weAreKillable) {
+    if (weAreKillable) {
         status = "DANGER";
         r = 1; g = 0; b = 0;  
     } else if (theyAreKillable) {
@@ -5280,9 +5291,6 @@ void HetuwMod::drawCombatIndicator() {
     }else if (holdingMurderWeapon) {
         status = "VUNERABLE";
         r = 1.0; g = 1.0; b = 0.0f;
-    }else if (holdingWeapon){
-        status = "ARMED";
-        r = 1.0; g = 0.5; b = 0.0f;
 	}
 
     snprintf(sBuf, sizeof(sBuf), "%s", status.c_str());
@@ -5444,17 +5452,30 @@ void HetuwMod::drawOurStatus() {
             status = "NURSING";
             setDrawColor(0, 1, 1, 1);
         }
+		else if (ourLiveObject->holdingID < 0){
+            status = "HOLDING";
+            setDrawColor(0, 1, 1, 1);
+		}
 		else if (ourLiveObject->holdingID != 0) {
 			ObjectRecord* obj = getObject(ourLiveObject->holdingID);
 			if (obj != NULL) {
 				char* stringUpper = stringToUpperCase(obj->description);
 				char descrBuf[256];
+
+				// clean description (removes hashtags, etc.)
 				HetuwMod::objGetDescrWithoutHashtag(stringUpper, descrBuf, sizeof(descrBuf));
-				status = descrBuf;
+
+				// now build final string with description + object ID
+				char finalBuf[256];
+				snprintf(finalBuf, sizeof(finalBuf), "%s (OBJECT %d)", descrBuf, ourLiveObject->holdingID);
+
+				status = strdup(finalBuf);  // allocate so it doesn't point to stack memory
+
 				setDrawColor(1, 0.5, 0.5, 1);
 				delete [] stringUpper;
 			}
 		}
+
 		else if (ourLiveObject->name != NULL) {
 			status = ourLiveObject->name;
 			setDrawColor(1, 1, 1, 1);
