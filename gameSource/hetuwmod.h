@@ -656,6 +656,8 @@ public:
 	static std::string decodeIfCiphered(const char* msg);
 	static int cipherNumberSay;
 	static int cipherNumberRead;
+	static string teamPrefix;
+	static bool prefixTeamEnabled;
 	static float UIScale(float value);
     static doublePair drawUIRectFollowCamera(
     doublePair offsetFromBottomCenter,

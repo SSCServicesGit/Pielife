@@ -1379,7 +1379,7 @@ void showDiedPage() {
     
     currentGamePage = extendedMessagePage;
     
-    extendedMessagePage->setMessageKey( "youDied" );
+    extendedMessagePage->setMessageKey( "- DEATH -" );
     
     char *reason = livingLifePage->getDeathReason();
     

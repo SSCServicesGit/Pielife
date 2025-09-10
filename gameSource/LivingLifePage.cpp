@@ -6809,15 +6809,13 @@ char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
     }
 
 // Pielife Addition
-
 void LivingLifePage::drawTypingBarUI() {
     if (!mSayField.isFocused()) return; 
 
     double uiScale = HetuwMod::UIScale(1.0);
 
     HetuwMod::drawUIRectFollowCamera({-440, 120}, 900, 40, 0.0f, 0.0f, 0.0f, 0.6f);
-    HetuwMod::drawUIRectFollowCamera({-670, 150}, 330, 20, 0.0f, 0.0f, 0.0f, 0.6f); //positionx, positiony, width, height
-    //for every action there must be an equal or opposite reaction + 50 -50
+    HetuwMod::drawUIRectFollowCamera({-590, 150}, 440, 20, 0.0f, 0.0f, 0.0f, 0.6f);
 
     char* typedText = mSayField.getText();
     if (!typedText) return;
@@ -6829,6 +6827,12 @@ void LivingLifePage::drawTypingBarUI() {
     else if (hasSlash) baseSayLimit = 23;
 
     int sayLimit = (HetuwMod::cipherNumberSay != 0) ? baseSayLimit - 2 : baseSayLimit;
+
+    if (HetuwMod::prefixTeamEnabled && !HetuwMod::teamPrefix.empty()) {
+        sayLimit -= (int)HetuwMod::teamPrefix.length();
+        if (sayLimit < 0) sayLimit = 0;
+    }
+
     mSayField.setMaxLength(sayLimit);
 
     doublePair textPos;
@@ -6836,28 +6840,43 @@ void LivingLifePage::drawTypingBarUI() {
     textPos.y = lastScreenViewCenter.y - (viewHeight / 2) + 120 * uiScale;
 
     setDrawColor(hasSlash ? 0.0f : 1.0f,
-                hasSlash ? 1.0f : 1.0f,
-                hasSlash ? 1.0f : 1.0f,
-                1.0f);
-hetuwDrawScaledHandwritingFont(typedText, textPos, uiScale * 0.8, alignLeft);
+                 hasSlash ? 1.0f : 1.0f,
+                 hasSlash ? 1.0f : 1.0f,
+                 1.0f);
     hetuwDrawScaledHandwritingFont(typedText, textPos, uiScale * 0.8, alignLeft);
 
-    if (HetuwMod::cipherNumberSay != 0 && !hasSlash) {
-        std::string ciphered;
-        for (char* p = typedText; *p; ++p) {
-            char c = *p;
-            if (isalpha(c)) {
-                char base = isupper(c) ? 'A' : 'a';
-                ciphered += char(((c - base + HetuwMod::cipherNumberSay) % 26) + base);
-            } else {
-                ciphered += c;
+    if (!hasSlash && (HetuwMod::cipherNumberSay != 0 || HetuwMod::prefixTeamEnabled)) {
+        std::string previewText;
+
+        if (HetuwMod::cipherNumberSay != 0) {
+            for (char* p = typedText; *p; ++p) {
+                char c = *p;
+                if (isalpha(c)) {
+                    char base = isupper(c) ? 'A' : 'a';
+                    previewText += char(((c - base + HetuwMod::cipherNumberSay) % 26 + 26) % 26 + base);
+                } else {
+                    previewText += c;
+                }
             }
+        } else {
+            previewText = typedText;
         }
+
+        std::string prefix;
+        if (HetuwMod::cipherNumberSay != 0) {
+            prefix = "!-";
+        }
+        if (HetuwMod::prefixTeamEnabled && !HetuwMod::teamPrefix.empty()) {
+            prefix += HetuwMod::teamPrefix;
+        }
+
+        std::string finalPreview = prefix + previewText;
 
         doublePair cipherPos = textPos;
         cipherPos.y -= 20 * uiScale;
+
         setDrawColor(0.7f, 0.7f, 0.7f, 1.0f);
-        hetuwDrawScaledHandwritingFont(("!-" + ciphered).c_str(),
+        hetuwDrawScaledHandwritingFont(finalPreview.c_str(),
                                        cipherPos,
                                        uiScale * 0.8,
                                        alignLeft);
@@ -6865,10 +6884,18 @@ hetuwDrawScaledHandwritingFont(typedText, textPos, uiScale * 0.8, alignLeft);
 
     int used = strlen(typedText);
     int left = sayLimit - used; 
+    if (left < 0) left = 0;
 
-    char counterMsg[64];
+    const char* tpfxVal = HetuwMod::teamPrefix.empty() ? "N/A" : HetuwMod::teamPrefix.c_str();
+
+    char counterMsg[256];
     snprintf(counterMsg, sizeof(counterMsg),
-             "[ LEFT: %d CC: S:%d R:%d ]", left, HetuwMod::cipherNumberSay, HetuwMod::cipherNumberRead);
+            "[ LEFT: %d/CCS:%d CCR:%d/TPFX: %s ATPFX: %s ]",
+            left, 
+            HetuwMod::cipherNumberSay, 
+            HetuwMod::cipherNumberRead, 
+            tpfxVal,
+            HetuwMod::prefixTeamEnabled ? "ON" : "OFF");
 
     doublePair counterTextPos;
     counterTextPos.x = lastScreenViewCenter.x - 795 * uiScale;
@@ -6882,6 +6909,7 @@ hetuwDrawScaledHandwritingFont(typedText, textPos, uiScale * 0.8, alignLeft);
 
     delete[] typedText;
 }
+
 
 
 void LivingLifePage::drawFoodStatus() {
@@ -20649,7 +20677,20 @@ void LivingLifePage::step() {
 
                                 HetuwMod::decodeDigits(buffer);        
                                 std::string finalSpeech = HetuwMod::decodeIfCiphered(buffer);  
+
+                                if (!HetuwMod::teamPrefix.empty()) {
+                                    size_t pos = finalSpeech.find(HetuwMod::teamPrefix);
+                                    if (pos != std::string::npos) {
+                                        finalSpeech.erase(pos, HetuwMod::teamPrefix.length());
+                                        char* msgCopy = stringDuplicate(finalSpeech.c_str());
+                                        displayGlobalMessage(msgCopy);
+                                        delete[] msgCopy;
+                                    }
+                                }
+
                                 existing->currentSpeech = stringDuplicate(finalSpeech.c_str());
+
+
 
                                 double curTime = game_getCurrentTime();
                                 
@@ -27431,17 +27472,65 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 typedText[0] = '\0';
             
                             }
+                            else if( strstr( typedText, "/TPFX" ) == typedText ) {
+                                const char* codeStart = typedText + strlen("/TPFX");
+                                while( *codeStart == ' ' ) {
+                                    codeStart++;
+                                }
+                                if( codeStart[0] != '\0' ) {
+                                    bool valid = true;
+                                    for( const char* p = codeStart; *p != '\0'; p++ ) {
+                                        if( *p != '?' && *p != ',' && *p != '.' && *p != '\'' && *p != '!' ) {
+                                            valid = false;
+                                            break;
+                                        }
+                                    }
+
+                                    if( valid ) {
+                                        HetuwMod::teamPrefix = codeStart; 
+                                    }
+                                    else {
+                         
+                                        HetuwMod::teamPrefix = "";
+                         
+                                        displayGlobalMessage( stringDuplicate("Invalid TEAMCODE: only ?,.'!") );
+                                    }
+                                }
+                                else {
+    
+                                    HetuwMod::teamPrefix = "";
+                                }
+                            }
+                            else if (strstr(typedText, "/ATPFX") == typedText) {
+                                if (HetuwMod::prefixTeamEnabled == true) {
+                                    HetuwMod::prefixTeamEnabled = false;
+                                } else {
+                                    HetuwMod::prefixTeamEnabled = true;
+                                }
+                            }
                             else if( strstr( typedText, "/CIPHER" ) == typedText ) {
                                 int n = 0;
 
                                 if( sscanf( typedText, "/CIPHER %d", &n ) == 1 ) {
                                     if( n < 0 ) n = 0;
-                                    if( n > 25 ) n = 25;   // 🔹 cap at 25
+                                    if( n > 25 ) n = 25;   
                                     HetuwMod::cipherNumberSay = n;
                                     HetuwMod::cipherNumberRead = n;
                                 }
                                 else {
                                     HetuwMod::cipherNumberSay = 0;
+                                    HetuwMod::cipherNumberRead = 0;
+                                }
+                            }
+                            else if( strstr( typedText, "/CCR" ) == typedText ) {
+                                int n = 0;
+
+                                if( sscanf( typedText, "/CCR %d", &n ) == 1 ) {
+                                    if( n < 0 ) n = 0;
+                                    if( n > 25 ) n = 25;   
+                                    HetuwMod::cipherNumberRead = n;
+                                }
+                                else {
                                     HetuwMod::cipherNumberRead = 0;
                                 }
                             }
@@ -27450,23 +27539,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
                                 if( sscanf( typedText, "/CCS %d", &n ) == 1 ) {
                                     if( n < 0 ) n = 0;
-                                    if( n > 25 ) n = 25;   // 🔹 cap at 25
+                                    if( n > 25 ) n = 25;   
                                     HetuwMod::cipherNumberSay = n;
                                 }
                                 else {
                                     HetuwMod::cipherNumberSay = 0;
-                                }
-                            }
-                            else if( strstr( typedText, "/CCR" ) == typedText ) {
-                                int n = 0;
-
-                                if( sscanf( typedText, "/CCR %d", &n ) == 1 ) {
-                                    if( n < 0 ) n = 0;
-                                    if( n > 25 ) n = 25;   // 🔹 cap at 25
-                                    HetuwMod::cipherNumberRead = n;
-                                }
-                                else {
-                                    HetuwMod::cipherNumberRead = 0;
                                 }
                             }
                             else {
@@ -27541,7 +27618,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                     }
                                 }
                             }
-                        
                         // send text to server
 
 						if (!vogMode) { // hetuw mod 

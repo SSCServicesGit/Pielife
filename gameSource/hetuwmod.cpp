@@ -30,6 +30,8 @@ using namespace std;
 //Pielife Addition
 int HetuwMod::cipherNumberSay = 0; 
 int HetuwMod::cipherNumberRead = 0;
+string HetuwMod::teamPrefix = "";
+bool HetuwMod::prefixTeamEnabled = false;
 
 //
 
@@ -1729,11 +1731,17 @@ void HetuwMod::Say(const char *text, int cipherNum) {
                 ciphered += char(((c - base + cipherNum) % 26 + 26) % 26 + base);
             } else {
                 ciphered += c;
-            }	
+            }
         }
     }
 
+
     std::string prefix = (cipherNum != 0) ? "!-" : "";
+
+    if (HetuwMod::prefixTeamEnabled && !HetuwMod::teamPrefix.empty()) {
+        prefix += HetuwMod::teamPrefix;
+    }
+
     std::string finalMsg = prefix + ciphered;
 
     size_t len = finalMsg.size();
@@ -1746,6 +1754,7 @@ void HetuwMod::Say(const char *text, int cipherNum) {
 
     delete[] encoded;
 }
+
 
 
 // Encode digits using 0 = ?A, 1 = ?B, 2 = ?C, etc. due to server restrictions
