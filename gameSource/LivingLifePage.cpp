@@ -6815,7 +6815,7 @@ void LivingLifePage::drawTypingBarUI() {
     double uiScale = HetuwMod::UIScale(1.0);
 
     HetuwMod::drawUIRectFollowCamera({-440, 120}, 900, 40, 0.0f, 0.0f, 0.0f, 0.6f);
-    HetuwMod::drawUIRectFollowCamera({-590, 150}, 440, 20, 0.0f, 0.0f, 0.0f, 0.6f);
+    HetuwMod::drawUIRectFollowCamera({-530, 150}, 550, 20, 0.0f, 0.0f, 0.0f, 0.6f);
 
     char* typedText = mSayField.getText();
     if (!typedText) return;
@@ -6827,6 +6827,11 @@ void LivingLifePage::drawTypingBarUI() {
     else if (hasSlash) baseSayLimit = 23;
 
     int sayLimit = (HetuwMod::cipherNumberSay != 0) ? baseSayLimit - 2 : baseSayLimit;
+
+    if (HetuwMod::cipherNumberSay != 0 && !HetuwMod::cipherPrefix.empty()) {
+        sayLimit -= (int)HetuwMod::cipherPrefix.length();
+        if (sayLimit < 0) sayLimit = 0;
+    }
 
     if (HetuwMod::prefixTeamEnabled && !HetuwMod::teamPrefix.empty()) {
         sayLimit -= (int)HetuwMod::teamPrefix.length();
@@ -6864,7 +6869,7 @@ void LivingLifePage::drawTypingBarUI() {
 
         std::string prefix;
         if (HetuwMod::cipherNumberSay != 0) {
-            prefix = "!-";
+            prefix = HetuwMod::cipherPrefix;
         }
         if (HetuwMod::prefixTeamEnabled && !HetuwMod::teamPrefix.empty()) {
             prefix += HetuwMod::teamPrefix;
@@ -6887,11 +6892,13 @@ void LivingLifePage::drawTypingBarUI() {
     if (left < 0) left = 0;
 
     const char* tpfxVal = HetuwMod::teamPrefix.empty() ? "N/A" : HetuwMod::teamPrefix.c_str();
+    const char* cpfxVal = HetuwMod::cipherPrefix.empty() ? "N/A" : HetuwMod::cipherPrefix.c_str();
 
     char counterMsg[256];
     snprintf(counterMsg, sizeof(counterMsg),
-            "[ LEFT: %d/CCS:%d CCR:%d/TPFX: %s ATPFX: %s ]",
+            "[ LEFT: %d/CPFX: %s CCS:%d CCR:%d/TPFX: %s ATPFX: %s ]",
             left, 
+            cpfxVal,
             HetuwMod::cipherNumberSay, 
             HetuwMod::cipherNumberRead, 
             tpfxVal,
@@ -6909,6 +6916,7 @@ void LivingLifePage::drawTypingBarUI() {
 
     delete[] typedText;
 }
+
 
 
 
@@ -27494,6 +27502,35 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                         HetuwMod::teamPrefix = "";
                          
                                         displayGlobalMessage( stringDuplicate("Invalid TEAMCODE: only ?,.'!") );
+                                    }
+                                }
+                                else {
+    
+                                    HetuwMod::teamPrefix = "";
+                                }
+                            }
+                            else if( strstr( typedText, "/CPFX" ) == typedText ) {
+                                const char* codeStart = typedText + strlen("/CPFX");
+                                while( *codeStart == ' ' ) {
+                                    codeStart++;
+                                }
+                                if( codeStart[0] != '\0' ) {
+                                    bool valid = true;
+                                    for( const char* p = codeStart; *p != '\0'; p++ ) {
+                                        if( *p != '?' && *p != ',' && *p != '.' && *p != '\'' && *p != '!' ) {
+                                            valid = false;
+                                            break;
+                                        }
+                                    }
+
+                                    if( valid ) {
+                                        HetuwMod::cipherPrefix = codeStart; 
+                                    }
+                                    else {
+                         
+                                        HetuwMod::cipherPrefix = "";
+                         
+                                        displayGlobalMessage( stringDuplicate("Invalid cipher prefix: only ?,.'!") );
                                     }
                                 }
                                 else {

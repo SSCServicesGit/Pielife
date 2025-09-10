@@ -28,6 +28,7 @@
 using namespace std;
 
 //Pielife Addition
+string HetuwMod::cipherPrefix = "!-";
 int HetuwMod::cipherNumberSay = 0; 
 int HetuwMod::cipherNumberRead = 0;
 string HetuwMod::teamPrefix = "";
@@ -1736,7 +1737,7 @@ void HetuwMod::Say(const char *text, int cipherNum) {
     }
 
 
-    std::string prefix = (cipherNum != 0) ? "!-" : "";
+    std::string prefix = (cipherNum != 0) ? cipherPrefix : "";
 
     if (HetuwMod::prefixTeamEnabled && !HetuwMod::teamPrefix.empty()) {
         prefix += HetuwMod::teamPrefix;
@@ -2455,7 +2456,7 @@ void HetuwMod::drawHostileTiles() {
 std::string HetuwMod::decodeIfCiphered(const char* msg) {
     std::string text(msg);
 
-    if (text.rfind("!-", 0) == 0) {
+    if (text.rfind(cipherPrefix, 0) == 0) {
         text = text.substr(2); 
 
         std::string decoded;
