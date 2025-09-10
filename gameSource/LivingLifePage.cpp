@@ -20687,14 +20687,25 @@ void LivingLifePage::step() {
                                 std::string finalSpeech = HetuwMod::decodeIfCiphered(buffer);  
 
                                 if (!HetuwMod::teamPrefix.empty()) {
-                                    size_t pos = finalSpeech.find(HetuwMod::teamPrefix);
-                                    if (pos != std::string::npos) {
-                                        finalSpeech.erase(pos, HetuwMod::teamPrefix.length());
+                              
+                                    size_t firstLetter = 0;
+                                    while (firstLetter < finalSpeech.size() && !isalpha(finalSpeech[firstLetter])) {
+                                        firstLetter++;
+                                    }
+
+                                    if (firstLetter >= HetuwMod::teamPrefix.length() &&
+                                        finalSpeech.compare(firstLetter - HetuwMod::teamPrefix.length(),
+                                                            HetuwMod::teamPrefix.length(),
+                                                            HetuwMod::teamPrefix) == 0) {
+                                        finalSpeech.erase(firstLetter - HetuwMod::teamPrefix.length(),
+                                                        HetuwMod::teamPrefix.length());
+
                                         char* msgCopy = stringDuplicate(finalSpeech.c_str());
                                         displayGlobalMessage(msgCopy);
                                         delete[] msgCopy;
                                     }
                                 }
+
 
                                 existing->currentSpeech = stringDuplicate(finalSpeech.c_str());
 
