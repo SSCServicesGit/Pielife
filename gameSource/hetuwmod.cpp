@@ -2425,7 +2425,7 @@ void HetuwMod::drawHostileTiles() {
             int objId = livingLifePage->hetuwGetObjId(x, y);
             if (objId >= 0 && objId < maxObjects) {
 				
-                if(isGroundDangerousWithHeld(heldObjectID, objId, false)) {
+                if(isGroundDangerousWithHeld(heldObjectID, objId, true)) {
                     int state = animalState(objId);
 
                
@@ -4164,7 +4164,7 @@ bool HetuwMod::tileHasNoDangerousAnimals(int x, int y) {
 	int objId = livingLifePage->hetuwGetObjId(x, y);
 	int heldID = ourLiveObject->holdingID;
 
-	return !isGroundDangerousWithHeld(heldID, objId, false);
+	return !isGroundDangerousWithHeld(heldID, objId, true);
 }
 
 bool HetuwMod::tileHasClosedDoor(int x, int y) {
