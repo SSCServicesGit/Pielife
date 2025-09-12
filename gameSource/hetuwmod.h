@@ -527,7 +527,7 @@ public:
 
 	static std::vector<std::string> splitStrXTimes(const std::string &str, char splitChar, int count);
 
-	static bool isGroundDangerousWithHeld(int heldID, int groundID);
+	static bool isGroundDangerousWithHeld(int heldID, int groundID, bool ignoreTransition);
 	static bool isObjectDangerous(int objID);
 
 	static void setTakingPhoto( bool inTakingPhoto );

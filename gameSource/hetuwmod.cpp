@@ -756,11 +756,12 @@ bool HetuwMod::isObjectDangerous(int objID) {
 	return obj->permanent && obj->deadlyDistance > 0;
 }
 
-bool HetuwMod::isGroundDangerousWithHeld(int heldID, int groundID) { // Note: Running this for every tile each frame is not optimal, but it's not a big deal
+bool HetuwMod::isGroundDangerousWithHeld(int heldID, int groundID, bool ignoreTransition) { // Note: Running this for every tile each frame is not optimal, but it's not a big deal
 	if (!isObjectDangerous(groundID)) return false; // If it isn't usually dangerous, it's not ever (I hope)
+	if (heldID <= 0 || heldID >= maxObjects) return true; // If our hands are empty, or invalid itemID, or BB (negative number), it stays dangerous
 
 	ObjectRecord *held = getObject(heldID, true);
-	if (held == NULL || !held->rideable) return true; // If we aren't holding an item, or it's not rideable; it's dangerous
+	if (held == NULL || !held->rideable || ignoreTransition) return true; // Item doesn't exist, or it's not rideable, or we want to ignore the transition; it stays dangerous
 
 	// Now check transition, if the object is dangerous and affects our ridden object, we assume it is dangerous
 	// e.g. a bear is still dangerous if we are riding a horse and cart
@@ -2423,7 +2424,8 @@ void HetuwMod::drawHostileTiles() {
         for (int y = startY; y < endY; y++) {
             int objId = livingLifePage->hetuwGetObjId(x, y);
             if (objId >= 0 && objId < maxObjects) {
-                if (isGroundDangerousWithHeld(heldObjectID, objId)) {
+				
+                if(isGroundDangerousWithHeld(heldObjectID, objId, false)) {
                     int state = animalState(objId);
 
                
@@ -4162,7 +4164,7 @@ bool HetuwMod::tileHasNoDangerousAnimals(int x, int y) {
 	int objId = livingLifePage->hetuwGetObjId(x, y);
 	int heldID = ourLiveObject->holdingID;
 
-	return !isGroundDangerousWithHeld(heldID, objId);
+	return !isGroundDangerousWithHeld(heldID, objId, false);
 }
 
 bool HetuwMod::tileHasClosedDoor(int x, int y) {
