@@ -27499,7 +27499,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 if( codeStart[0] != '\0' ) {
                                     bool valid = true;
                                     for( const char* p = codeStart; *p != '\0'; p++ ) {
-                                        if( *p != '?' && *p != ',' && *p != '.' && *p != '\'' && *p != '!' ) {
+                                        if(*p != '-' && *p != '?' && *p != ',' && *p != '.' && *p != '\'' && *p != '!' ) {
                                             valid = false;
                                             break;
                                         }
@@ -27512,7 +27512,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                          
                                         HetuwMod::teamPrefix = "";
                          
-                                        displayGlobalMessage( stringDuplicate("Invalid TEAMCODE: only ?,.'!") );
+                                        displayGlobalMessage( stringDuplicate("Invalid TEAMCODE: only ?,.'!-") );
                                     }
                                 }
                                 else {
@@ -27525,28 +27525,27 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 while( *codeStart == ' ' ) {
                                     codeStart++;
                                 }
-                                if( codeStart[0] != '\0' ) {
+
+                                if( codeStart[0] == '\0' ) {
+                                    HetuwMod::cipherPrefix = "";
+                                }
+                                else {
                                     bool valid = true;
                                     for( const char* p = codeStart; *p != '\0'; p++ ) {
-                                        if( *p != '?' && *p != ',' && *p != '.' && *p != '\'' && *p != '!' ) {
+                                        if(*p != '-' && *p != '?' && *p != ',' && *p != '.' && *p != '\'' && *p != '!' ) {
                                             valid = false;
                                             break;
                                         }
                                     }
 
                                     if( valid ) {
-                                        HetuwMod::cipherPrefix = codeStart; 
+                                        HetuwMod::cipherPrefix = codeStart;
                                     }
                                     else {
-                         
                                         HetuwMod::cipherPrefix = "";
-                         
-                                        displayGlobalMessage( stringDuplicate("Invalid cipher prefix: only ?,.'!") );
+                                        displayGlobalMessage( stringDuplicate(
+                                            "Invalid cipher prefix: only ?,.'!-" ) );
                                     }
-                                }
-                                else {
-    
-                                    HetuwMod::teamPrefix = "";
                                 }
                             }
                             else if (strstr(typedText, "/ATPFX") == typedText) {
