@@ -6810,57 +6810,61 @@ char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
 
 // Pielife Addition
 void LivingLifePage::drawTypingBarUI() {
-    if (!mSayField.isFocused()) return; 
+    if (!mSayField.isFocused()) return;
 
     double uiScale = HetuwMod::UIScale(1.0);
 
     HetuwMod::drawUIRectFollowCamera({-440, 120}, 900, 40, 0.0f, 0.0f, 0.0f, 0.6f);
     HetuwMod::drawUIRectFollowCamera({-530, 150}, 550, 20, 0.0f, 0.0f, 0.0f, 0.6f);
 
-    char* typedText = mSayField.getText();
-    if (!typedText) return;
+    char* rawText = mSayField.getText();
+    if (!rawText) return;
+    std::string typedText(rawText);
 
-    bool hasSlash = strchr(typedText, '/');
+    bool hasSlash = (strchr(rawText, '/') != nullptr);
 
     int baseSayLimit = getSayLimit(computeCurrentAge(getOurLiveObject()));
-    if (vogMode) baseSayLimit = 200;
-    else if (hasSlash) baseSayLimit = 23;
+    if (vogMode) {
+        baseSayLimit = 200;
+    } else if (hasSlash) {
+        baseSayLimit = 23;
+    }
 
     int sayLimit = (HetuwMod::cipherNumberSay != 0) ? baseSayLimit - 2 : baseSayLimit;
 
     if (HetuwMod::cipherNumberSay != 0 && !HetuwMod::cipherPrefix.empty()) {
-        sayLimit -= (int)HetuwMod::cipherPrefix.length();
+        sayLimit -= static_cast<int>(HetuwMod::cipherPrefix.length());
         if (sayLimit < 0) sayLimit = 0;
     }
 
     if (HetuwMod::prefixTeamEnabled && !HetuwMod::teamPrefix.empty()) {
-        sayLimit -= (int)HetuwMod::teamPrefix.length();
+        sayLimit -= static_cast<int>(HetuwMod::teamPrefix.length());
         if (sayLimit < 0) sayLimit = 0;
     }
 
-    mSayField.setMaxLength(sayLimit);
+    mSayField.setMaxLength(std::max(0, sayLimit));
 
     doublePair textPos;
-    textPos.x = lastScreenViewCenter.x - 790 * uiScale;   
+    textPos.x = lastScreenViewCenter.x - 790 * uiScale;
     textPos.y = lastScreenViewCenter.y - (viewHeight / 2) + 120 * uiScale;
 
     setDrawColor(hasSlash ? 0.0f : 1.0f,
-                 hasSlash ? 1.0f : 1.0f,
+                 1.0f,
                  hasSlash ? 1.0f : 1.0f,
                  1.0f);
-    hetuwDrawScaledHandwritingFont(typedText, textPos, uiScale * 0.8, alignLeft);
+    hetuwDrawScaledHandwritingFont(typedText.c_str(), textPos, uiScale * 0.8, alignLeft);
 
     if (!hasSlash && (HetuwMod::cipherNumberSay != 0 || HetuwMod::prefixTeamEnabled)) {
         std::string previewText;
 
         if (HetuwMod::cipherNumberSay != 0) {
-            for (char* p = typedText; *p; ++p) {
-                char c = *p;
+            for (char ch : typedText) {
+                unsigned char c = static_cast<unsigned char>(ch);
                 if (isalpha(c)) {
                     char base = isupper(c) ? 'A' : 'a';
                     previewText += char(((c - base + HetuwMod::cipherNumberSay) % 26 + 26) % 26 + base);
                 } else {
-                    previewText += c;
+                    previewText += ch;
                 }
             }
         } else {
@@ -6869,7 +6873,7 @@ void LivingLifePage::drawTypingBarUI() {
 
         std::string prefix;
         if (HetuwMod::cipherNumberSay != 0) {
-            prefix = HetuwMod::cipherPrefix;
+            prefix += HetuwMod::cipherPrefix;
         }
         if (HetuwMod::prefixTeamEnabled && !HetuwMod::teamPrefix.empty()) {
             prefix += HetuwMod::teamPrefix;
@@ -6887,8 +6891,8 @@ void LivingLifePage::drawTypingBarUI() {
                                        alignLeft);
     }
 
-    int used = strlen(typedText);
-    int left = sayLimit - used; 
+    int used = static_cast<int>(typedText.length());
+    int left = sayLimit - used;
     if (left < 0) left = 0;
 
     const char* tpfxVal = HetuwMod::teamPrefix.empty() ? "N/A" : HetuwMod::teamPrefix.c_str();
@@ -6897,10 +6901,10 @@ void LivingLifePage::drawTypingBarUI() {
     char counterMsg[256];
     snprintf(counterMsg, sizeof(counterMsg),
             "[ LEFT: %d/CPFX: %s CCS:%d CCR:%d/TPFX: %s ATPFX: %s ]",
-            left, 
+            left,
             cpfxVal,
-            HetuwMod::cipherNumberSay, 
-            HetuwMod::cipherNumberRead, 
+            HetuwMod::cipherNumberSay,
+            HetuwMod::cipherNumberRead,
             tpfxVal,
             HetuwMod::prefixTeamEnabled ? "ON" : "OFF");
 
@@ -6913,9 +6917,8 @@ void LivingLifePage::drawTypingBarUI() {
                                    counterTextPos,
                                    uiScale * 0.8,
                                    alignLeft);
-
-    delete[] typedText;
 }
+
 
 
 

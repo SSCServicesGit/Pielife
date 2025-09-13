@@ -2456,23 +2456,29 @@ void HetuwMod::drawHostileTiles() {
 // Pielife Addition
 
 std::string HetuwMod::decodeIfCiphered(const char* msg) {
+    if (!msg) return std::string();
+
     std::string text(msg);
 
+    if (cipherPrefix.empty()) {
+        return text;
+    }
+
     if (text.rfind(cipherPrefix, 0) == 0) {
-        text = text.substr(2); 
+        text = text.substr(cipherPrefix.length());
 
         std::string decoded;
-        for (char c : text) {
-            if (isalpha(c)) {
-                char base = isupper(c) ? 'A' : 'a';
-                decoded += char(((c - base - HetuwMod::cipherNumberRead + 26) % 26) + base);
+        decoded.reserve(text.size());
+        for (unsigned char uc : text) {
+            if (isalpha(uc)) {
+                char base = isupper(uc) ? 'A' : 'a';
+                decoded += char(((uc - base - HetuwMod::cipherNumberRead + 26) % 26) + base);
             } else {
-                decoded += c;
+                decoded += static_cast<char>(uc);
             }
         }
 
-        // 🔹 Run through decodeDigits before returning
-        char *digitsDecoded = stringDuplicate(decoded.c_str());
+        char* digitsDecoded = stringDuplicate(decoded.c_str());
         HetuwMod::decodeDigits(digitsDecoded);
         std::string fullyDecoded(digitsDecoded);
         delete [] digitsDecoded;
@@ -2480,9 +2486,8 @@ std::string HetuwMod::decodeIfCiphered(const char* msg) {
         return fullyDecoded;
     }
 
-    return text; 
+    return text;
 }
-
 
 void HetuwMod::drawHostilePlayers(LiveObject* player) {
 
